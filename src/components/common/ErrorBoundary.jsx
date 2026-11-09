@@ -20,6 +20,14 @@ class ErrorBoundary extends React.Component {
     window.location.href = "/";
   };
 
+  handleRecover = () => {
+    try {
+      localStorage.removeItem("civicflow_complaints");
+    } catch {}
+    this.setState({ hasError: false, error: null });
+    window.location.reload();
+  };
+
   render() {
     if (this.state.hasError) {
       return (
@@ -34,24 +42,24 @@ class ErrorBoundary extends React.Component {
             </h1>
 
             <p className="text-slate-600 text-sm leading-relaxed">
-              An unexpected error occurred. Please return to the homepage or refresh to continue safely.
+              An unexpected error occurred. Please return to the homepage or recover to continue safely.
             </p>
 
             <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
               <button
-                onClick={this.handleReset}
+                onClick={this.handleRecover}
                 className="w-full sm:w-auto bg-[#083b77] hover:bg-[#0a4891] text-white font-semibold px-5 py-2.5 rounded-xl text-sm transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm"
               >
-                <Home className="w-4 h-4" />
-                <span>Return to Home</span>
+                <RefreshCw className="w-4 h-4" />
+                <span>Recover & Refresh</span>
               </button>
 
               <button
-                onClick={() => window.location.reload()}
+                onClick={this.handleReset}
                 className="w-full sm:w-auto bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold px-5 py-2.5 rounded-xl text-sm transition-all flex items-center justify-center gap-2 cursor-pointer border border-slate-300"
               >
-                <RefreshCw className="w-4 h-4" />
-                <span>Refresh Page</span>
+                <Home className="w-4 h-4" />
+                <span>Return to Home</span>
               </button>
             </div>
           </div>

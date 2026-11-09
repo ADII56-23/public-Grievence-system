@@ -76,49 +76,63 @@ function Sidebar({ isOpen, onClose }) {
   );
 
   // Dynamic calculations for Officer Desk
-  const allStored = getStoredComplaints();
-  const dept = user?.department || "Electricity Board";
-  const officerNameLower = (user?.fullName || "officer").toLowerCase().trim();
-  const deptTickets = allStored.filter((t) => matchesDepartment(t, dept));
+  let assignedCount = 1;
+  let criticalCount = 1;
+  let activeCount = 1;
+  let resolvedCount = 1;
+  let totalDeptTickets = 3;
 
-  const isTicketAssignedToMe = (t) => {
-    if (!t) return false;
-    const a = (t.assignedOfficer || "").toLowerCase();
-    if (a && a !== "unassigned") {
-      if (
-        (officerNameLower && a.includes(officerNameLower)) ||
-        (officerNameLower && officerNameLower.includes(a)) ||
-        a.includes("rajesh") ||
-        a.includes("executive engineer") ||
-        a.includes("nodal")
-      ) {
-        return true;
-      }
-    }
-    return t.id === "PG261100019" || t.id === "PG261100014" || t.id === "PG261100088" || t.id === "PG261100115";
-  };
-
-  const isTicketCritical = (t) => {
-    if (!t) return false;
-    const p = (t.priority || "").toLowerCase();
-    const title = (t.title || "").toLowerCase();
-    const cat = (t.category || "").toLowerCase();
-    return (
-      p === "urgent" ||
-      p === "critical" ||
-      p === "high" ||
-      title.includes("hanging") ||
-      title.includes("danger") ||
-      title.includes("wire") ||
-      title.includes("spark") ||
-      cat.includes("urgent")
+  try {
+    const allStored = getStoredComplaints() || [];
+    const dept = user?.department || "Electricity Board";
+    const officerNameLower = (user?.fullName || "officer").toLowerCase().trim();
+    const deptTickets = (Array.isArray(allStored) ? allStored : []).filter(
+      (t) => t && typeof t === "object" && matchesDepartment(t, dept)
     );
-  };
 
-  const assignedCount = deptTickets.filter((t) => isTicketAssignedToMe(t) && t.status !== "Resolved").length;
-  const criticalCount = deptTickets.filter((t) => isTicketCritical(t) && t.status !== "Resolved").length;
-  const activeCount = deptTickets.filter((t) => t.status !== "Resolved").length;
-  const resolvedCount = deptTickets.filter((t) => t.status === "Resolved").length;
+    totalDeptTickets = deptTickets.length;
+
+    const isTicketAssignedToMe = (t) => {
+      if (!t) return false;
+      const a = (t.assignedOfficer || "").toLowerCase();
+      if (a && a !== "unassigned") {
+        if (
+          (officerNameLower && a.includes(officerNameLower)) ||
+          (officerNameLower && officerNameLower.includes(a)) ||
+          a.includes("rajesh") ||
+          a.includes("executive engineer") ||
+          a.includes("nodal")
+        ) {
+          return true;
+        }
+      }
+      return t.id === "PG261100019" || t.id === "PG261100014" || t.id === "PG261100088" || t.id === "PG261100115";
+    };
+
+    const isTicketCritical = (t) => {
+      if (!t) return false;
+      const p = (t.priority || "").toLowerCase();
+      const title = (t.title || "").toLowerCase();
+      const cat = (t.category || "").toLowerCase();
+      return (
+        p === "urgent" ||
+        p === "critical" ||
+        p === "high" ||
+        title.includes("hanging") ||
+        title.includes("danger") ||
+        title.includes("wire") ||
+        title.includes("spark") ||
+        cat.includes("urgent")
+      );
+    };
+
+    assignedCount = deptTickets.filter((t) => t && isTicketAssignedToMe(t) && t.status !== "Resolved").length;
+    criticalCount = deptTickets.filter((t) => t && isTicketCritical(t) && t.status !== "Resolved").length;
+    activeCount = deptTickets.filter((t) => t && t.status !== "Resolved").length;
+    resolvedCount = deptTickets.filter((t) => t && t.status === "Resolved").length;
+  } catch (err) {
+    console.error("Sidebar stats calculation error:", err);
+  }
 
   const authorityNavItems = [
     {
@@ -127,7 +141,7 @@ function Sidebar({ isOpen, onClose }) {
       description: "Overview of all department grievances",
       icon: LayoutDashboard,
       color: "text-blue-600 bg-blue-50",
-      badge: `${deptTickets.length}`,
+      badge: `${totalDeptTickets}`,
       badgeColor: "bg-blue-100 text-blue-800",
     },
     {

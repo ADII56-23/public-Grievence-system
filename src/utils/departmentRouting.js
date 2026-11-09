@@ -283,12 +283,13 @@ export const SEED_COMPLAINTS = [
  * Ensures strict department isolation (e.g. water issues NEVER show up on electric officer's desk).
  */
 export function matchesDepartment(ticket, officerDept) {
+  if (!ticket || typeof ticket !== "object") return false;
   if (!officerDept) return true;
   if (officerDept === "All" || officerDept === "All Departments") return true;
 
   const tDept = (ticket.department || "").toLowerCase().trim();
   const tCat = (ticket.category || "").toLowerCase().trim();
-  const oDept = officerDept.toLowerCase().trim();
+  const oDept = (officerDept || "").toLowerCase().trim();
 
   // 1. Direct equality or substring containment
   if (tDept === oDept || tDept.includes(oDept) || oDept.includes(tDept)) {
@@ -353,15 +354,16 @@ export function getStoredComplaints() {
     if (raw) {
       const parsed = JSON.parse(raw);
       if (Array.isArray(parsed) && parsed.length > 0) {
-        // Automatically merge missing seed complaints (e.g. PG261100014 resolved ticket & statusHistory)
-        const existingIds = new Set(parsed.map((t) => t.id));
-        const missingSeeds = SEED_COMPLAINTS.filter((s) => !existingIds.has(s.id));
+        // Sanitize: filter out any null or non-object entries
+        const cleanList = parsed.filter((t) => t && typeof t === "object" && t.id);
+        const existingIds = new Set(cleanList.map((t) => t.id));
+        const missingSeeds = SEED_COMPLAINTS.filter((s) => s && s.id && !existingIds.has(s.id));
         if (missingSeeds.length > 0) {
-          const merged = [...parsed, ...missingSeeds];
+          const merged = [...cleanList, ...missingSeeds];
           localStorage.setItem("civicflow_complaints", JSON.stringify(merged));
           return merged;
         }
-        return parsed;
+        return cleanList.length > 0 ? cleanList : SEED_COMPLAINTS;
       }
     }
   } catch {

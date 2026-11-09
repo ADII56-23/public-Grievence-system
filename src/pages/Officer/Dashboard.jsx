@@ -257,18 +257,19 @@ export default function Dashboard() {
   }
 
   /* ── Strict Department Isolation Filtering ── */
-  const departmentTickets = allTickets.filter((t) =>
-    matchesDepartment(t, selectedDeptFilter)
+  const departmentTickets = (Array.isArray(allTickets) ? allTickets : []).filter(
+    (t) => t && typeof t === "object" && matchesDepartment(t, selectedDeptFilter)
   );
 
   /* ── Search, Status & View Filters on Department Tickets ── */
   const filtered = departmentTickets.filter((t) => {
-    const q = search.toLowerCase();
+    if (!t) return false;
+    const q = (search || "").toLowerCase();
     const matchSearch =
-      t.id.toLowerCase().includes(q) ||
-      t.title.toLowerCase().includes(q) ||
-      t.citizen.toLowerCase().includes(q) ||
-      t.category.toLowerCase().includes(q) ||
+      (t.id || "").toLowerCase().includes(q) ||
+      (t.title || "").toLowerCase().includes(q) ||
+      (t.citizen || "").toLowerCase().includes(q) ||
+      (t.category || "").toLowerCase().includes(q) ||
       (t.department && t.department.toLowerCase().includes(q)) ||
       (t.address && t.address.toLowerCase().includes(q)) ||
       (t.assignedOfficer && t.assignedOfficer.toLowerCase().includes(q));
@@ -296,20 +297,21 @@ export default function Dashboard() {
     active: departmentTickets.filter((t) => t.status !== "Resolved").length,
     resolved: departmentTickets.filter((t) => t.status === "Resolved").length,
     totalUpdates: departmentTickets.reduce((acc, t) => {
-      const hCount = Array.isArray(t.statusHistory) && t.statusHistory.length > 0
+      const hCount = Array.isArray(t?.statusHistory) && t.statusHistory.length > 0
         ? t.statusHistory.length
-        : (t.timeline ? t.timeline.length : 1);
+        : (Array.isArray(t?.timeline) ? t.timeline.length : 1);
       return acc + hCount;
     }, 0)
   };
 
   /* ── Compute All Update Status History Audit Logs across department tickets ── */
   const allHistoryLogs = departmentTickets.flatMap((t) => {
+    if (!t) return [];
     const list = Array.isArray(t.statusHistory) && t.statusHistory.length > 0
       ? t.statusHistory
       : [
           {
-            id: `HIST-${t.id}-init`,
+            id: `HIST-${t.id || 'seed'}-init`,
             timestamp: `${t.submittedDate || "05 Nov 2026"}, 10:15 AM`,
             date: t.submittedDate || "05 Nov 2026",
             previousStatus: "Initiated",
@@ -321,8 +323,8 @@ export default function Dashboard() {
             remarks: "Public grievance recorded and routed to department nodal authority."
           },
           ...(Array.isArray(t.timeline) && t.timeline.length > 1
-            ? t.timeline.slice(1).filter((s) => s.done || s.completed).map((s, idx) => ({
-                id: `HIST-${t.id}-${idx + 1}`,
+            ? t.timeline.slice(1).filter((s) => s && (s.done || s.completed)).map((s, idx) => ({
+                id: `HIST-${t.id || 'seed'}-${idx + 1}`,
                 timestamp: s.date || "Recent",
                 date: s.date || "Recent",
                 previousStatus: idx === 0 ? "Pending" : "In Progress",
@@ -336,16 +338,16 @@ export default function Dashboard() {
             : [])
         ];
 
-    return list.map((h) => ({
+    return (Array.isArray(list) ? list : []).filter(Boolean).map((h) => ({
       ...h,
       ticketId: t.id,
-      ticketTitle: t.title,
-      ticketCategory: t.category,
-      ticketPriority: t.priority,
-      currentStatus: t.status,
+      ticketTitle: t.title || "Grievance",
+      ticketCategory: t.category || "General",
+      ticketPriority: t.priority || "Normal",
+      currentStatus: t.status || "Pending",
       ticket: t
     }));
-  }).sort((a, b) => (b.id || "").localeCompare(a.id || ""));
+  }).sort((a, b) => (b?.id || "").localeCompare(a?.id || ""));
 
   /* ── 1-Click Feature: Claim / Assign Ticket to Current Officer ── */
   const handleAssignToMe = (ticketId) => {
